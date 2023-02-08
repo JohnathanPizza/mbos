@@ -1,0 +1,139 @@
+; indexed array from ps2 set 2 scan codes to ascii characters
+; the index is the ascii value and the element is the scan code value
+
+; scan codes for characters are not greater than 0X7F (0B01111111), so capital ascii have 0X80 (0B10000000) added to the scan code value
+; when shift is pressed, add 0X80 to the scan code value basically
+
+.C KB_SC_BREAK,		0XF0
+.C KB_SC_EXTEND,	0XE0
+.C KB_SC_LSHIFT,	0X12
+
+.L KB_TLARRAY
+.DROP 0 ; null
+.DROP 0 ; soh
+.DROP 0 ; stx
+.DROP 0 ; etx
+.DROP 0 ; eot
+.DROP 0 ; enq
+.DROP 0 ; ack
+.DROP 0 ; bel
+.DROP 0X66 ; backspace/bs
+.DROP 0X0D ; tab
+.DROP 0X5A ; enter/lf
+.DROP 0 ; vt
+.DROP 0 ; ff
+.DROP 0 ; cr
+.DROP 0 ; so
+.DROP 0 ; si
+.DROP 0 ; dle
+.DROP 0X05 ; f1/dc1
+.DROP 0X06 ; f2/dc2
+.DROP 0X04 ; f3/dc3
+.DROP 0X0C ; f4/dc4
+.DROP 0 ; nak
+.DROP 0 ; syn
+.DROP 0 ; etb
+.DROP 0 ; can
+.DROP 0 ; em
+.DROP 0 ; sub
+.DROP 0X76 ; esc
+.DROP 0 ; fs
+.DROP 0 ; gs
+.DROP 0 ; rs
+.DROP 0 ; us
+.DROP 0X29 ; space
+.DROP 0X16 0X80 ; !
+.DROP 0X52 0X80 ; "
+.DROP 0X26 0X80 ; #
+.DROP 0X25 0X80 ; $
+.DROP 0X2E 0X80 ; %
+.DROP 0X3D 0X80 ; &
+.DROP 0X52 ; '
+.DROP 0X46 0X80 ; (
+.DROP 0X45 0X80 ; )
+.DROP 0X3E 0X80 ; *
+.DROP 0X55 0X80 ; +
+.DROP 0X41 ; ,
+.DROP 0X4E ; -
+.DROP 0X49 ; .
+.DROP 0X4A ; /
+.DROP 0X45 ; 0
+.DROP 0X16 ; 1
+.DROP 0X1E ; 2
+.DROP 0X26 ; 3
+.DROP 0X25 ; 4
+.DROP 0X2E ; 5
+.DROP 0X36 ; 6
+.DROP 0X3D ; 7
+.DROP 0X3E ; 8
+.DROP 0X46 ; 9
+.DROP 0X4C 0X80 ; :
+.DROP 0X4C ; ;
+.DROP 0X41 0X80 ; <
+.DROP 0X55 ; =
+.DROP 0X49 0X80 ; >
+.DROP 0X4A 0X80 ; ?
+.DROP 0X1E 0X80 ; @
+.DROP 0X1C 0X80 ; A
+.DROP 0X32 0X80
+.DROP 0X21 0X80
+.DROP 0X23 0X80
+.DROP 0X24 0X80
+.DROP 0X2B 0X80
+.DROP 0X34 0X80
+.DROP 0X33 0X80
+.DROP 0X43 0X80
+.DROP 0X3B 0X80
+.DROP 0X42 0X80
+.DROP 0X4B 0X80
+.DROP 0X3A 0X80
+.DROP 0X31 0X80
+.DROP 0X44 0X80
+.DROP 0X4D 0X80
+.DROP 0X15 0X80
+.DROP 0X2D 0X80
+.DROP 0X1B 0X80
+.DROP 0X2C 0X80
+.DROP 0X3C 0X80
+.DROP 0X2A 0X80
+.DROP 0X1D 0X80
+.DROP 0X22 0X80
+.DROP 0X35 0X80
+.DROP 0X1A 0X80 ; Z
+.DROP 0X54 ; [
+.DROP 0X5D ; \
+.DROP 0X5B ; ]
+.DROP 0X36 0X80 ; ^
+.DROP 0X4E 0X80 ; _
+.DROP 0X0E ; `
+.DROP 0X1C ; a
+.DROP 0X32
+.DROP 0X21
+.DROP 0X23
+.DROP 0X24
+.DROP 0X2B
+.DROP 0X34
+.DROP 0X33
+.DROP 0X43
+.DROP 0X3B
+.DROP 0X42
+.DROP 0X4B
+.DROP 0X3A
+.DROP 0X31
+.DROP 0X44
+.DROP 0X4D
+.DROP 0X15
+.DROP 0X2D
+.DROP 0X1B
+.DROP 0X2C
+.DROP 0X3C
+.DROP 0X2A
+.DROP 0X1D
+.DROP 0X22
+.DROP 0X35
+.DROP 0X1A ; z
+.DROP 0X54 0X80 ; {
+.DROP 0X5D 0X80 ; |
+.DROP 0X5B 0X80 ; }
+.DROP 0X0E 0X80 ; ~
+.DROP 0 ; del

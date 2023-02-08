@@ -1,0 +1,197 @@
+; MATH16
+;	ADD16
+;	SUB16
+;	INC16
+;	DEC16
+;	UCMP16
+;	SCMP16
+
+; ADD16
+; P - (VR0) pointer to number 1 "P1" (VR1) pointer to number 2 "P2"
+; R - (VR0) pointer to sum "PS"
+; adds two 16-bit numbers through pointers P1 and P2
+; P1 and P2 can point to signed or unsigned numbers
+; overwrites contents through P1 with the sum (through PS)
+
+.L ADD16
+	PHY		; push Y register
+	PHA		; push accumulator
+	LDY 0, I	; initialize byte index to 0
+	CLC		; clear carry for add
+	LDA VR0, NY	; load low byte through P1
+	ADC VR1, NY	; add low byte through P1 to low byte through P2
+	STA VR0, NY	; store into low byte through PS (P1)
+	INY		; increment byte index
+	LDA VR0, NY	; load high byte through P1
+	ADC VR1, NY	; add high byte through P1 to high byte through P2
+	STA VR0, NY	; store into high byte through PS (P1)
+	PLA		; pull accumulator
+	PLY		; pull Y register
+	RTS		; return
+
+
+;=================================================
+
+
+; SUB16
+; P - (VR0) pointer to number 1 "P1" (VR1) pointer to number 2 "P2"
+; R - (VR0) pointer to difference "PD"
+; subtracts two 16-bit numbers through pointers P1 and P2
+; P1 and P2 can point to signed or unsigned numbers
+; overwrites contents through P1 with the difference (through PD)
+
+.L SUB16
+	PHY		; push Y register
+	PHA		; push accumulator
+	LDY 0, I	; initialize byte index to 0
+	SEC		; set carry for sub
+	LDA VR0, NY	; load low byte through P1
+	SBC VR1, NY	; sub low byte through P1 with low byte through P2
+	STA VR0, NY	; store into low byte through PD (P1)
+	INY		; increment byte index
+	LDA VR0, NY	; load high byte through P1
+	SBC VR1, NY	; sub high byte through P1 with high byte through P2
+	STA VR0, NY	; store into high byte through PD (P1)
+	PLA		; pull accumulator
+	PLY		; pull Y register
+	RTS		; return
+
+;.L SUB16
+	;PHA		; push accumulator
+	;SEC		; set carry for sub
+	;LDA VR0, N	; load low byte through P1
+	;SBC VR1, N	; sub low byte through P1 with low byte through P2
+	;STA VR0, N	; store into low byte through PD (P1)
+	;INC VR0
+	;INC VR1
+	;LDA VR0, N	; load high byte through P1
+	;SBC VR1, N	; sub high byte through P1 with high byte through P2
+	;STA VR0, N	; store into high byte through PD (P1)
+	;PLA		; pull accumulator
+	;RTS		; return
+
+
+;=================================================
+
+
+; INC16
+; P - (VR0) pointer to number "P"
+; R - (VR0) pointer to incremented number "I"
+; increments the 16-bit number from pointer P by 1
+
+.L INC16
+	PHA		; push accumulator
+	PHY		; push Y register
+	LDY 0, I	; initialize byte index to 0
+	CLC		; clear carry for add
+	LDA VR0, NY	; load low byte through P
+	ADC 1, I	; add 1 to low byte
+	STA VR0, NY	; store into low byte through I (P)
+	INY		; increment byte index
+	LDA VR0, NY	; load high byte through P
+	ADC 0, I	; add carry from high byte
+	STA VR0, NY	; store into high byte through I (P)
+	PLY		; pull Y register
+	PLA		; pull accumulator
+	RTS		; return
+
+
+;=================================================
+
+
+; DEC16
+; P - (VR0) pointer to number "P"
+; R - (VR0) pointer to decremented number "D"
+; decrements the 16-bit number from pointer P by 1
+
+.L DEC16
+	PHA		; push accumulator
+	PHY		; push Y register
+	LDY 0, I	; initialize byte index to 0
+	SEC		; set cary for sub
+	LDA VR0, NY	; load low byte through P
+	SBC 1, I	; sub 1 from low byte
+	STA VR0, NY	; store into low byte through D (P)
+	INY		; increment byte index
+	LDA VR0, NY	; load high byte through P
+	SBC 0, I	; sub carry from high byte
+	STA VR0, NY	; store into high byte through I (P)
+	PLY		; pull Y register
+	PLA		; pull accumulator
+	RTS		; return
+
+
+;=================================================
+
+
+; UCMP16
+; P - (VR0) pointer to number 1 "P1" (VR1) pointer to number 2 "P2"
+; R - (A) comparison result "R"
+; numerically compares the two UNSIGNED numbers at P1 and P2
+; the numbers at P1 and P2 are not modified
+; R = 0 if *P1 == *P2
+; R = -1 (0xFF) if *P1 < *P2
+; R = 1 if *P1 > *P2
+
+.C CMP16_EQUAL, 0
+.C CMP16_GREATER, 1
+.C CMP16_LESS, 0XFF
+
+.L UCMP16
+	PHY			; push Y register
+	LDY 1, I		; initialize byte index to 1 (high byte)
+	LDA VR0, NY		; load high byte through P1
+	CMP VR1, NY		; compare high byte through P1 to high byte through P2
+	BCC _UCMP16_LESS	; if the first high byte is less, return -1
+	BNE _UCMP16_GREATER	; if the first high byte is greater, return 1
+			; the high bytes are equal
+	DEY			; decrement byte index to 0 (low byte now)
+	LDA VR0, NY		; load low byte through P1
+	CMP VR1, NY		; compare low byte through P1 to low byte through P2
+	BCC _UCMP16_LESS	; if the first low byte is less, return -1
+	BNE _UCMP16_GREATER	; if the first low byte is greater, return 1
+			; the low bytes are equal and the numbers are equal
+	LDA CMP16_EQUAL, I	; load equality
+	PLY			; pull Y register
+	RTS			; return equal
+.L _UCMP16_GREATER
+	LDA CMP16_GREATER, I	; load greater than
+	PLY			; pull Y register
+	RTS			; return greater
+.L _UCMP16_LESS
+	LDA CMP16_LESS, I	; load less than
+	PLY			; pull Y register
+	RTS			; return less
+
+
+;=================================================
+
+
+; SCMP16
+; P - (VR0) pointer to number 1 "P1" (VR1) pointer to number 2 "P2"
+; R - (A) comparison result "R"
+; numerically compares the two SIGNED numbers at P1 and P2
+; the numbers at P1 and P2 are not modified
+; R = 0 if *P1 == *P2
+; R = -1 (0xFF) if *P1 < *P2
+; R = 1 if *P1 > *P2
+
+; this is kinda cheating, flip the msb of each number then it becomes an unsigned comparison
+.L SCMP16
+	PHY
+	LDY 1, I
+	JSR _SCMP16_FLIP
+	JSR UCMP16
+	PHA
+	JSR _SCMP16_FLIP
+	PLA
+	PLY
+	RTS
+.L _SCMP16_FLIP
+	LDA VR0, NY
+	EOR 0X80, I
+	STA VR0, NY
+	LDA VR1, NY
+	EOR 0X80, I
+	STA VR1, NY
+	RTS

@@ -1,0 +1,26 @@
+; zp
+.C VR0,	0XF0 ; saved
+.C VR1,	0XF2 ; saved
+.C VR2,	0XF4 ; saved
+.C VR3,	0XF6 ; saved
+.C VR4,	0XF8 ; tmp
+.C VR5,	0XFA ; tmp
+.C VR6,	0XFC ; tmp, ret
+.C VR7,	0XFE ; tmp, ret
+
+; keyboard info
+.C KB_DATA,		0X200 ; 1
+.C KB_FLAGS,		0X201 ; 1
+.C KB_SHIFT,		0X202 ; 1
+
+.C BREAK_CODE,		0X203 ; 1
+
+; io
+.C OUT_BUFFER,		0X300 ; 0x80
+.C IN_BUFFER,		0X380 ; 0x80
+.C OUT_BUFFER_WI,	0X400 ; 1
+.C OUT_BUFFER_RI,	0X401 ; 1
+.C IN_BUFFER_WI,	0X402 ; 1
+.C OUTPUT_STATUS,	0X403 ; 1
+.C INPUT_STATUS,	0X404 ; 1
+.C OUT_BUFFER_TWI,	0X405 ; 1

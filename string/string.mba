@@ -1,0 +1,211 @@
+; STRING
+;	STRLEN8
+;	STRLEN16
+;	STRCMP
+;	STRCPY
+;	STRCAT
+;	STRCHR
+
+
+; STRLEN8
+; P - (VR0) string pointer "P"
+; R - (Y) length "L"
+; returns the number of characters in the string (length) pointed to by P
+; this is the 8-bit version and only counts to 255 characters
+; string must be terminated with the null character and the null character is not counted
+; L = 0 if the string is just the null character
+; L = 255 if the string length is >= 255, so strings 255 characters long are invalid
+
+.L STRLEN8
+	LDY 0, I		; initialize counter to 0
+	PHA			; push accumulator
+.L _STRLEN8_LOOP
+	LDA VR0, NY		; load character from P at index from Y
+	BEQ _STRLEN8_END	; return if the character is the null character
+	INY			; increment counter/index
+	BNE _STRLEN8_LOOP	; loop if the counter is not 0 (after 255 it wraps to 0)
+			; counter is 0 and has counted 255 characters
+	DEY			; decrement counter to wrap back to 255
+.L _STRLEN8_END
+	PLA			; pull accumulator
+	RTS			; return
+
+
+;=================================================
+
+
+; STRLEN16
+; P - (VR0) string pointer "P"
+; R - (VR7) string length "L"
+; returns the number of characters in the string pointer to by P
+; this is the 16-bit version and can count up to 0xFFFF characters
+; the string must be termined with the null character and the null character is not counted
+; L = 0 if the string is just the null character
+; otherwise L = string length since it is impossible for it to be greater than 0xFFFF (no error condition unlike STRLEN8)
+
+.L STRLEN16
+	PHY			; push Y register
+	PHA			; push accumulator
+	LDY 0, I		; initialize index to be 0
+	STZ VR7 1		; initialize high byte of length
+.L _STRLEN16_LOOP
+	LDA VR0, NY		; load character through P at index from Y
+	BEQ _STRLEN16_END	; stop if the character is the null character
+			; not the null character
+	INY			; increment index
+	BNE _STRLEN16_LOOP	; loop again if the index did not wrap around to 0
+			; index wrapped around from 0xFF to 0, need to adjust P
+	INC VR0 1		; increment high byte of P
+	INC VR7 1		; increment high byte of L
+	BRA _STRLEN16_LOOP	; loop again
+.L _STRLEN16_END
+	STY VR7			; store Y value into low byte of L
+	LDA VR0 1		; load high byte of P
+	SEC			; set carry for sub
+	SBC VR7 1		; sub high byte of L from high byte of P to restore original P value
+	STA VR0 1		; store into high byte of P
+	PLA			; pull accumulator
+	PLY			; pull Y register
+	RTS			; return
+
+
+;=================================================
+
+
+; STRCMP
+; P - (VR0) pointer to string 1 "P1" (VR1) pointer to string 2 "P2"
+; R - (A) T/F result "R"
+; compare two strings for equality
+; two strings are equal if they have the same length and all parallel characters are equal in value
+; R = 0 if the strings are equal
+; R = not 0 if the strings are not equal
+
+.L STRCMP
+	PHY			; push Y register
+	LDY VR0 1		; load high byte of P1 for pointer adjustment at end
+	PHY			; push
+	LDY VR1 1		; load high byte of P2 for pointer adjustment at end
+	PHY			; push
+	LDY 0, I		; initialize index to 0
+.L _STRCMP_LOOP
+	LDA VR0, NY		; load character through P1
+	SEC			; set carry for sub
+	SBC VR1, NY		; sub character through P1 with character through P2
+	BNE _STRCMP_END		; return a nonzero number if the sub result is not zero
+			; accumulator value is 0 here
+	CMP VR0, NY		; test if the character is the null character
+	BEQ _STRCMP_END		; if character is the null character, accumulator has value 0 now for equal strings on return
+			; character is not the null character, increment pointers
+	INY			; increment index
+	BNE _STRCMP_LOOP	; loop if index did not wrap
+			; index wrapped from 0xFF to 0
+	INC VR0 1		; increment high byte of P1
+	INC VR1 1		; increment high byte of P2
+	BRA _STRCMP_LOOP	; loop
+.L _STRCMP_END
+	PLY			; pull original high byte of P2
+	STY VR1 1		; store into high byte of P2
+	PLY			; pull original high byte of P1
+	STY VR0 1		; store into high byte of P1
+	PLY			; pull Y register
+	RTS			; return
+
+
+;=================================================
+
+
+; STRCPY
+; P - (VR0) pointer to source string "PS" (VR1) pointer to destination string "PD"
+; R - none
+; copies the contents from source at PS into the destination at PD
+; copies up to and including the null character through PS
+
+.L STRCPY
+	PHY			; push Y register
+	LDY VR0 1		; load high byte of PS for pointer adjustment at end
+	PHY			; push
+	LDY VR1 1		; load high byte of PD for pointer adjustment at end
+	PHY			; push
+	LDY 0, I		; initialize index to 0
+.L _STRCPY_LOOP
+	LDA VR1, NY		; load character through PS at index from Y
+	STA VR2, NY		; store character through PD at index from Y
+	BEQ _STRCPY_END		; if the character is the null character then exit
+			; character is not the null character, continue
+	INY			; increment index
+	BNE _STRCPY_LOOP	; loop again if it did not wrap
+			; index wrapped from 0xFF to 0, increment pointers
+	INC VR0 1		; increment high byte of PS
+	INC VR1 1		; increment high byte of PD
+	BRA _STRCPY_LOOP	; loop
+.L _STRCPY_END
+	PLY			; pull original high byte of PD
+	STY VR1 1		; store into high byte of PD
+	PLY			; pull original high byte of PS
+	STY VR0 1		; store int high byte of PS
+	PLY			; pull Y register
+	RTS			; return
+
+
+;=================================================
+
+
+; STRCAT
+; P - (VR0) pointer to contents string "PC" (VR1) pointer to base string "PB"
+; R - (VR1) pointer to start of previous concatenation "PP"
+; appends the characters from the string at PC to the end of the string at PB
+; the null character is added to the end of the new string
+; PP = the location of where the concatenation started / the location of the prior null character in PB
+
+.L STRCAT
+		; save PC from overwrite by STRCHR call
+	PHA		; push accumulator
+	LDA VR0		; load low byte of PC
+	PHA		; push low byte of PC
+	LDA VR0 1	; load high byte of PC
+	PHA		; push high byte of PC
+	LDA 0, I	; load 0 to find the null character
+	JSR STRCHR	; find the null character in PB and set PB to it
+	PLA		; pull high byte of PC
+	STA VR0 1	; restore
+	PLA		; pull low byte of PC
+	STA VR0		; restore
+	JSR STRCPY	; copy from PC to the end of PB
+	RTS		; return
+
+
+;=================================================
+
+
+; STRCHR
+; P - (A) character "C" (VR1) pointer to string "PS"
+; R - (VR1) pointer to found character "PC"
+; finds the first occurance of C in the string at P and returns a pointer to it
+; PC = 0 if C is not in the string
+; otherwise PC points to the occurance of C in the string
+; the null character is also compared with C
+
+.L STRCHR
+			; setup for INC16 call
+	STA VR0 1		; store C into high byte of VR0
+	LDA VR1, I		; load address of VR1
+	STA VR0			; store address of VR1 into low byte of VR0
+	LDA VR0 1		; load C from high byte of VR0
+.L _STRCHR_LOOP
+	CMP VR1, N		; compare C to character in string
+	BEQ _STRCHR_END		; return pointer if the character in the string equals C
+			; character does not match
+	STA VR0 1		; store C into high byte of VR0 
+	LDA VR1, N		; load character from the string through PS
+	BEQ _STRCHR_NULL	; return the null pointer if the character is the null character
+	LDA VR0 1		; load C from high byte of VR0
+	STZ VR0 1		; store 0 into high byte of VR0
+	JSR INC16		; increment PS
+	BRA _STRCHR_LOOP	; loop
+.L _STRCHR_NULL
+	STZ VR1			; set low byte of PC to 0
+	STZ VR1 1		; set high byte of PC to 0
+	DEC VR1			; decrement low byte of PC to become 0xFF
+	DEC VR1 1		; decrement high byte of PC to become 0xFF
+.L _STRCHR_END
+	RTS			; return PC

@@ -1,0 +1,55 @@
+.L __START
+	; only pre hardware init to do is the stack
+	LDX 0XFF, I
+	TXS
+
+	; cant do a lot without turning on the hw
+	STA HW_LATCH HW_VIA HW_RAM
+
+	; can set up values on the via
+	; ca1 - keyboard interrupt, rising edge active
+	; ca2 - nothing
+	; cb1 - printer interrupt, falling edge active
+	; cb2 - nothing
+	; A - keyboard port, all inputs
+	; B - printer port, all outputs
+	LDA 0, I
+	STA VIA_DDRA
+	LDA 0XFF, I
+	STA VIA_DDRB
+	LDA 1, I ; sets ca1 to rising edge active
+	STA VIA_PCR
+	; other things control the ier, not here
+
+	; init ram variables here
+	STZ KB_DATA
+	STZ KB_FLAGS
+	STZ KB_SHIFT
+
+	STZ OUT_BUFFER_WI
+	STZ OUT_BUFFER_RI
+	STZ IN_BUFFER_WI
+
+	STZ BREAK_CODE
+
+	LDA ASCII_ESC, I
+	JSR PUTC
+	LDA ASCII_AT, I
+	JSR PUTC
+
+	CLI
+
+;;
+	LDA LAMBS, I
+	STA VR0
+	LDA LAMBS + 8 >, I
+	STA VR0 1
+	JSR PUTS
+	LDA BC_PRINT, I
+	BRK
+	NOP
+.L DEATH
+	JMP DEATH
+;;
+
+.STRING LAMBS, "It puts the lotion on its skin."

@@ -1,0 +1,177 @@
+; CHARTEST
+;	ISHEX
+;	ISUPPER
+;	ISSPACE
+;	ISALPHA
+;	ISDIGIT
+;	TOLOWER
+;	TOUPPER
+
+
+; ISHEX
+; P - (A) character "C"
+; R - (A) T/F value "V"
+; returns if C is a valid hexadecimal character
+; C is a hexadecimal character if it is in the range [0-9] or [A-F] or [a-f]
+; V = TRUE if C is valid and V = FALSE if it is not
+
+.L ISHEX
+	JSR TOUPPER		; reduce the range of letters to test to [A-F]
+	CMP ASCII_A, I		; test C against 'A'
+	BCC _ISHEX_DIGIT	; advance if C < 'A'
+	CMP ASCII_F 1, I	; test C against 'F' + 1 ('G')
+	BCS _ISHEX_DIGIT	; advance if C >= 'F' + 1 (>= 'G')
+			; C is in the range [A-F]
+	LDA TRUE, I		; load value of true
+	RTS			; return true
+.L _ISHEX_DIGIT
+			; C is not in the range [A-F]
+	JSR ISDIGIT		; test if C is a digit
+	RTS			; return true if C is a digit, false if not
+
+
+;=================================================
+
+
+; ISUPPER
+; P - (A) character "C"
+; R - (A) T/F value "V"
+; returns if C is an uppercase character
+; C is uppercase if it is in the range [A-Z]
+; V = TRUE if C is uppercase and V = FALSE if it is not
+
+.L ISUPPER
+	CMP ASCII_A, I		; test C against 'A'
+	BCC _ISUPPER_FALSE	; return false if C < 'A'
+	CMP ASCII_Z 1, I	; test C against 'Z' + 1 ('[')
+	BCS _ISUPPER_FALSE	; return false if C >= 'Z' + 1 (>= '[')
+			; C is in the range [A-Z]
+	LDA TRUE, I		; load value of true
+	RTS			; return true
+.L _ISUPPER_FALSE
+			; C is not in the range [A-Z]
+	LDA FALSE, I		; load value of false
+	RTS			; return false
+
+
+;=================================================
+
+
+; ISSPACE
+; P - (A) character "C"
+; R - (A) T/F value "V"
+; returns if C is a "whitespace" character
+; C is whitespace if it is a space, tab, or newline
+; V = TRUE if C is whitespace and V = FALSE if it is not
+
+.L ISSPACE
+	CMP ASCII_SPACE, I	; test C against ' '
+	BEQ _ISSPACE_TRUE	; return true if C == ' '
+	CMP ASCII_TAB, I	; test C against '\t'
+	BEQ _ISSPACE_TRUE	; return true if C == '\t'
+	CMP ASCII_NEWLINE, I	; test C against '\n'
+	BEQ _ISSPACE_TRUE	; return true if C == '\n'
+			; C is not whitespace
+	LDA FALSE, I		; load value of false
+	RTS			; return false
+.L _ISSPACE_TRUE
+			; C is whitespace
+	LDA TRUE, I		; load value of true
+	RTS			; return true
+
+
+;=================================================
+
+
+; ISALPHA
+; P - (A) character "C"
+; R - (A) T/F value "V"
+; returns if C is an alphabetical character
+; C is alphabetical if it is in the range [A-Z] or [a-z]
+; V = TRUE if C is alphabetical and V = FALSE if it is not
+
+.L ISALPHA
+	JSR TOUPPER		; reduce the range of letters to [A-Z]
+	CMP ASCII_A, I		; test C against 'A'
+	BCC _ISALPHA_END	; return false if C < 'A'
+	CMP ASCII_Z 1, I	; test C against 'Z' + 1 ('[')
+	BCS _ISALPHA_END	; return false if C >= 'Z' + 1 (>= '[')
+			; C is alphabetical
+	LDA TRUE, I		; load value of true
+	RTS			; return true
+.L _ISALPHA_END
+			; C is not alphabetical
+	LDA FALSE, I		; load value of false
+	RTS			; return false
+
+
+;=================================================
+
+
+; ISDIGIT
+; P - (A) character "C"
+; R - (A) T/F value "V"
+; returns if C is a digit
+; C is a digit if it is in the range [0-9]
+; V = TRUE if C is a digit and V = FALSE if it is not
+
+.L ISDIGIT
+	CMP ASCII_0, I		; test C against '0'
+	BCC _ISDIGIT_END	; return false if C < '0'
+	CMP ASCII_9 1, I	; test C against '9' + 1 (':')
+	BCS _ISDIGIT_END	; return false is C >= '9' + 1 (':')
+			; C is a digit
+	LDA TRUE, I		; load value of true
+	RTS			; return true
+.L _ISDIGIT_END
+			; C is not a digit
+	LDA FALSE, I		; load value of false
+	RTS			; return false
+
+
+;=================================================
+
+
+; TOLOWER
+; P - (A) character "C"
+; R - (A) new character "N"
+; returns the lowercase version of C
+; for example if C = H then N = h
+; no conversion is performed if C is not in the range [A-Z] resulting in N = C
+; otherwise N = lowercase C if C is in the range [A-Z]
+
+.L TOLOWER
+	CMP ASCII_A, I		; test C against 'A'
+	BCC _TOLOWER_END	; return C if C < 'A'
+	CMP ASCII_Z 1, I	; test C against 'Z' + 1 ('[')
+	BCS _TOLOWER_END	; return C if C >= 'Z' + 1 (>= '[')
+			; C is an uppercase letter
+	CLC			; clear carry for add
+	ADC 0X20, I		; add 0x20 to convert to lowercase, 'a' - 'A' = 0x20
+.L _TOLOWER_END
+			; C is not an uppercase letter
+	RTS			; return C
+
+
+;=================================================
+
+
+; TOUPPER
+; P - (A) character "C"
+; R - (A) new character "N"
+; returns the uppercase version of C
+; for example if C = h then N = H
+; no conversion is performed if C is not in the range [a-z] resulting in N = C
+; otherwise N = uppercase C if C is in the range [a-z]
+
+.L TOUPPER
+	CMP ASCII_AL, I		; test C against 'a'
+	BCC _TOUPPER_END	; return C if C < 'a'
+	CMP ASCII_ZL 1, I	; test C against 'z' + 1 ('{')
+	BCS _TOUPPER_END	; return C if C >= 'z' + 1 (>= '{')
+			; C is a lowercase letter
+	SEC			; set carry for sub
+	SBC 0X20, I		; subtract 0x20 to convert to uppercase, 'A' - 'a' = -0x20
+.L _TOUPPER_END
+			; C is not a lowercase letter
+	RTS			; return C

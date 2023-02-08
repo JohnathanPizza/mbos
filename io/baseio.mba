@@ -1,0 +1,82 @@
+; BASEIO
+;	PRINTER_TRANSMIT
+;	SEND_OUTPUT
+;	ENABLE_PRINTER_INT
+;	DISABLE_PRINTER_INT
+
+
+; PRINTER_TRANSMIT
+; P - (A) character "C"
+; R - none
+; sends C to the printer over VIA_IORB
+
+.L PRINTER_TRANSMIT
+	ORA 0X80, I	; set transmit bit to signal new data is ready
+	STA VIA_IORB	; send to printer
+	EOR 0X80, I	; reset transmit bit so data only read once
+	STA VIA_IORB	; send to printer again
+	RTS		; return
+
+
+;=================================================
+
+
+; SEND_OUTPUT
+; P - none
+; R - (A) bool "B"
+; attempts to send the next character from the output buffer to the printer
+; returns B = FALSE if no character was sent
+; returns B = TRUE if a character was sent
+; if a character was sent, index values are adjusted
+
+.L SEND_OUTPUT
+	PHX			; push x
+	LDX OUT_BUFFER_RI	; load ri
+	CPX OUT_BUFFER_WI	; see if ri = wi, this indicates no data to send
+	BEQ _SEND_OUTPUT_NONE	; ri does equal wi, no data to send, return false
+			; indices not equal, data to send
+	LDA OUT_BUFFER, X	; load character to send
+	JSR PRINTER_TRANSMIT	; char to the printer
+	TXA			; ri to acc for arithmetic
+	INC			; inc ri
+	AND 0X7F, I		; AND to correct the range
+	STA OUT_BUFFER_RI	; store new ri back
+	PLX			; pull x
+	LDA TRUE, I		; load TRUE into B for return
+	RTS			; return
+.L _SEND_OUTPUT_NONE
+	PLX			; pull x
+	LDA FALSE, I		; load FALSE into B for return
+	RTS			; return
+
+
+;=================================================
+
+
+; ENABLE_PRINTER_INT
+; P - none
+; R - none
+; enables the interrupt bit in the VIA IER for the printer
+
+.L ENABLE_PRINTER_INT
+	PHA
+	LDA VIA_IER_ENABLE VIA_IRB_CB1, I
+	STA VIA_IER
+	PLA
+	RTS
+
+
+;=================================================
+
+
+; DISABLE_PRINTER_INT
+; P - none
+; R - none
+; disables the interrupt bit in the VIA IER for the printer
+
+.L DISABLE_PRINTER_INT
+	PHA
+	LDA VIA_IER_DISABLE VIA_IRB_CB1, I
+	STA VIA_IER
+	PLA
+	RTS

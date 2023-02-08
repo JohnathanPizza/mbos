@@ -1,0 +1,59 @@
+.L KB_INTERRUPT
+	LDA VIA_IORA
+	EOR 0XFF, I	; this can be taken out if table vals are flipped
+	CMP KB_SC_BREAK, I
+	BNE _KB_INTERRUPT_EXTEND
+	; is break
+	LDA KB_FLAGS
+	ORA 0X80, I
+	STA KB_FLAGS
+	RTS
+
+.L _KB_INTERRUPT_EXTEND
+	CMP KB_SC_EXTEND, I
+	BNE _KB_INTERRUPT_LSHIFT
+	; is extend
+	LDA KB_FLAGS
+	ORA 0X40, I
+	STA KB_FLAGS
+	RTS
+
+.L _KB_INTERRUPT_LSHIFT
+	CMP KB_SC_LSHIFT, I
+	BNE _KB_INTERRUPT_ASCII
+	; shift
+	; if break flag 1, shift is 0
+	; if break flag is 0, shift flag is not 0
+	; flip break flag and store that
+	; extend flag cant be on its not from the shift
+	LDA KB_FLAGS
+	EOR 0X80, I ; flip
+	STA KB_SHIFT ; store
+	STZ KB_FLAGS
+	RTS
+; btw u got at least 500 micros before the next char comes so u good
+.L _KB_INTERRUPT_ASCII
+	BIT KB_FLAGS
+	BNE _KB_INTERRUPT_ASCII_END
+	PHX
+	LDX 0X7F, I
+	CLC
+	ADC KB_SHIFT
+.L _KB_INTERRUPT_ASCII_LOOP
+	CMP KB_TLARRAY, X
+	BEQ _KB_INTERRUPT_ASCII_LOOP_END
+	DEX
+	BMI _KB_INTERRUPT_ASCII_LOOP
+.L _KB_INTERRUPT_ASCII_LOOP_END
+	STX KB_DATA
+	PLX
+.L _KB_INTERRUPT_ASCII_END
+	STZ KB_FLAGS
+	RTS
+	;JMP KB_CHARHANDLER
+
+.L KB_INIT
+	STZ KB_SHIFT
+	STZ KB_DATA
+	STZ KB_FLAGS
+	RTS

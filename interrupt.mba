@@ -1,0 +1,35 @@
+.L __INTERRUPT
+	STA BREAK_CODE		; store potential break code in safe place
+	PHX			; push x
+	PHA			; push acc
+
+	TSX			; stack to x
+	LDA 0X103, X		; acc now holds status register
+	AND 0X10, I		; check if the BRK flag is set (fifth bit in status reg)
+	BEQ __INTERRUPT_CB1	; no flag, go to ifr checks
+			; BRK flag detected, progam interreupted
+	LDA BREAK_CODE		; load break code from earlier
+	CMP BC_PRINT, I		; is it print?
+	BNE _IE			; no, no more codes to check, end
+			; yes, start printing operation
+	JSR SEND_OUTPUT		; attempt to write next char in outbuf
+	CMP FALSE, I		; test if no char wrote
+	BEQ _IE			; no char wrote, no need to start chain of writes, end
+			; wrote a char, data there, start chain
+	JSR ENABLE_PRINTER_INT	; turn on cb1 for future char writes
+	BRA _IE			; end
+.L __INTERRUPT_CB1
+	LDA VIA_IFR		; load ifr for test
+	AND VIA_IRB_CB1, I	; test cb1 bit
+	BEQ _IE			; not on, go to end
+			; cb1 on
+	BIT VIA_IORB		; disable int
+	JSR SEND_OUTPUT		; attempt to write next char in outbuf
+	CMP FALSE, I		; test if no char wrote
+	BNE _IE			; char wrote, go to end and do nothing
+			; char not wrote, must be at ri = wi, end
+	JSR DISABLE_PRINTER_INT	; turn off cb1
+.L _IE
+	PLA			; pull acc
+	PLX			; pull x
+	RTI			; return
