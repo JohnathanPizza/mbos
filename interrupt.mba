@@ -1,35 +1,94 @@
+; __INTERRUPT is the entrypoint for servicing interrupts caused by BRK or hardware
+
 .L __INTERRUPT
-	STA BREAK_CODE		; store potential break code in safe place
+	PHY			; push y
 	PHX			; push x
 	PHA			; push acc
 
 	TSX			; stack to x
-	LDA 0X103, X		; acc now holds status register
+	LDA 0X104, X		; acc now holds status register
 	AND 0X10, I		; check if the BRK flag is set (fifth bit in status reg)
-	BEQ __INTERRUPT_CB1	; no flag, go to ifr checks
-			; BRK flag detected, progam interreupted
-	LDA BREAK_CODE		; load break code from earlier
-	CMP BC_PRINT, I		; is it print?
-	BNE _IE			; no, no more codes to check, end
-			; yes, start printing operation
-	JSR SEND_OUTPUT		; attempt to write next char in outbuf
-	CMP FALSE, I		; test if no char wrote
-	BEQ _IE			; no char wrote, no need to start chain of writes, end
-			; wrote a char, data there, start chain
-	JSR ENABLE_PRINTER_INT	; turn on cb1 for future char writes
-	BRA _IE			; end
+	BEQ __INTERRUPT_VIA	; no flag, go to ifr checks
+			; BRK flag detected, program caused interreupt
+			; dec return ptr by 1 to get rid of nops
+	SEC			; sec for sub
+	LDA 0X105, X		; load low byte of return address
+	SBC 1, I		; subtract 1
+	STA 0X105, X		; store back
+	LDA 0X106, X		; load high byte of return address
+	SBC 0, I		; subtract 0 + C
+	STA 0X106, X		; store back
+	LDA 0X101, X		; load break value from stack
+	ASL			; asl for x2
+	TAX			; value x 2 in X register now, acts as offset into jump table
+	JMP BREAK_PTR_ARRAY, XN	; jump to function for specified value
+
+.L __INTERRUPT_VIA
 .L __INTERRUPT_CB1
-	LDA VIA_IFR		; load ifr for test
-	AND VIA_IRB_CB1, I	; test cb1 bit
-	BEQ _IE			; not on, go to end
-			; cb1 on
-	BIT VIA_IORB		; disable int
-	JSR SEND_OUTPUT		; attempt to write next char in outbuf
-	CMP FALSE, I		; test if no char wrote
-	BNE _IE			; char wrote, go to end and do nothing
-			; char not wrote, must be at ri = wi, end
-	JSR DISABLE_PRINTER_INT	; turn off cb1
-.L _IE
+	LDA VIA_IFR		; load IFR to see if this interrupt is on
+	AND VIA_IER		; IER bit is on when printing is going so this is the status indicator
+	AND VIA_IRB_CB1, I	; isolate bit for CB1 interrupt
+	BEQ __INTERRUPT_CA1	; if 0, then this interrupt is not on, go to CA1
+			; else CB1 is on
+	JSR READ_OUT_BUFFER	; attempt to get another character from output buffer
+	CPX TRUE, I		; if x is TRUE then acc has a valid character
+	BEQ __INTERRUPT_CB1_SEND	; x is TRUE, send the character
+			; else nothing left to send, turn off
+	JSR DISABLE_PRINTER_INT	; disable interrupt for printer (but don't clear it!)
+	STZ PRINT_STATUS	; reset printing status
+	BRA __INTERRUPT_CA1	; go to next interrupt
+.L __INTERRUPT_CB1_SEND
+			; acc has a valid char to print
+	JSR WRITE_PRINTER	; send character to the printer
+	LDA OUT_BUFFER_COPY_LEN	; test len to see if there is data to copy
+	BEQ __INTERRUPT_CA1	; if len is 0, no data to copy, end
+			; else data to copy into buffer
+	LDA VR0			; save VR0
+	PHA
+	LDA VR0 1
+	PHA
+	LDA OUT_BUFFER_COPY_PTR	; load copy ptr into VR0
+	STA VR0
+	LDA OUT_BUFFER_COPY_PTR 1
+	STA VR0 1
+	LDA VR0, ZN		; load leading character from the ptr
+	JSR WRITE_OUT_BUFFER	; write it into the output buffer
+		; ^ will never return false
+	CLC			; clc for adc
+	LDA OUT_BUFFER_COPY_PTR	; load low byte of copy ptr
+	ADC 1, I		; add 1
+	STA OUT_BUFFER_COPY_PTR	; store back
+	LDA OUT_BUFFER_COPY_PTR 1	; load high byte of copy ptr
+	ADC 0, I		; add 0 + C
+	STA OUT_BUFFER_COPY_PTR 1	; store back
+	DEC OUT_BUFFER_COPY_LEN	; decrement len
+	PLA			; restore VR0
+	STA VR0 1
+	PLA
+	STA VR0
+			; fall through to next interrupt check
+.L __INTERRUPT_CA1
+	LDA VIA_IFR		; load IFR to check bit
+	AND VIA_IER		; AND with the IER since the IER bit is an indicator of status
+	AND VIA_IRB_CA1, I	; isolate CA1 bit
+	BEQ __INTERRUPT_END	; if 0, end
+			; not 0, this interrupt is on
+	BIT KB_PORT		; clear interrupt in IFR
+	JSR READ_KEYBOARD	; process scan code from keyboard
+	CMP 0, I		; test result against null character
+	BEQ __INTERRUPT_END	; if null character, no data to process so end
+			; else data to process
+	JSR WRITE_IN_BUFFER	; process character and see if input should stop
+	CMP FALSE, I		; compare result to false
+	BEQ __INTERRUPT_END	; if false, leave the interrupt on and end
+			; else turn it off and reset flags
+	JSR DISABLE_KEYBOARD_INT	; turn off kb interrupt
+	STZ IN_STATUS		; zero to status
+	STZ KB_FLAGS		; reset flags
+	STZ KB_SHIFT		; reset shift
+
+.L __INTERRUPT_END
 	PLA			; pull acc
 	PLX			; pull x
+	PLY			; pull y
 	RTI			; return

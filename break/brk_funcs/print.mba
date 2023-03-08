@@ -1,0 +1,46 @@
+; BRK_PRINT
+; P - (VR0) pointer to data "P" (VR1) length of data "L"
+; R - none
+; M - VR4
+; copies data into the output buffer and starts the printing operation if needed
+; L is read as a single byte, so a max of 255 characters can be written at a time
+; if L characters from P couldn't be copied, then P is stored in memory with the remaining number to copy
+; the actual printer interrupt will take from the P stored in memory and adjust values when space opens
+
+.L BRK_PRINT
+	LDA VR0				; move pointer to data from VR0 into temporary register VR4
+	STA VR4
+	LDA VR0 1
+	STA VR4 1
+	LDA VR1
+	STA OUT_BUFFER_COPY_LEN		; store data length into memory so it can be changed
+.L _BRK_PRINT_LOOP
+	LDA OUT_BUFFER_COPY_LEN		; load length of data to copy
+	BEQ _BRK_PRINT_LOOP_END		; if length is 0, nothing else to do, end
+				; else write a character from the data pointer
+	LDA VR4, ZN			; load character to try and write
+	JSR WRITE_OUT_BUFFER		; attempt write
+	CMP FALSE, I			; compare X to false to see if write failed
+	BEQ _BRK_PRINT_LOOP_END		; if false, write failed, end
+				; else good write, adjust index and try next character
+	CLC				; clc for adc
+	LDA VR4				; load low byte of start
+	ADC 1, I			; add 1
+	STA VR4				; store back
+	LDA VR4 1			; load high byte
+	ADC 0, I			; add 0 + c
+	STA VR4 1			; store back
+	DEC OUT_BUFFER_COPY_LEN		; subtract 1 from length
+	BRA _BRK_PRINT_LOOP		; do the loop again
+.L _BRK_PRINT_LOOP_END
+	LDA VR4				; copy pointer to data in VR4 to memory in case not all data could fit
+	STA OUT_BUFFER_COPY_PTR
+	LDA VR4 1
+	STA OUT_BUFFER_COPY_PTR 1
+	LDA PRINT_STATUS		; load printing status to see if printing is already in progress or not
+	BNE _BRK_PRINT_END		; if not 0 (implies 1 btw), printing already started, interrupt will do the job
+				; else start the printing operation
+	JSR ENABLE_PRINTER_INT		; enable the printer interrupt
+	INC PRINT_STATUS		; set the printer status to not zero
+.L _BRK_PRINT_END
+	JMP __INTERRUPT_END		; return

@@ -1,3 +1,5 @@
+; __START is the entrypoint into the OS code
+
 .L __START
 	; only pre hardware init to do is the stack
 	LDX 0XFF, I
@@ -13,43 +15,53 @@
 	; cb2 - nothing
 	; A - keyboard port, all inputs
 	; B - printer port, all outputs
-	LDA 0, I
-	STA VIA_DDRA
-	LDA 0XFF, I
-	STA VIA_DDRB
-	LDA 1, I ; sets ca1 to rising edge active
+	LDA 1, I	; sets ca1 to rising edge active
 	STA VIA_PCR
-	; other things control the ier, not here
+	DEC		; 0 in acc
+	STA VIA_DDRA	; set port A to all inputs
+	DEC		; 0xff in acc
+	STA VIA_DDRB	; set port B to all outputs
 
 	; init ram variables here
-	STZ KB_DATA
-	STZ KB_FLAGS
-	STZ KB_SHIFT
+	STZ KB_FLAGS		; zero keyboard flags
+	STZ KB_SHIFT		; zero keybaord shift flag
 
-	STZ OUT_BUFFER_WI
+	STZ OUT_BUFFER_WI	; zero write and read indices
 	STZ OUT_BUFFER_RI
 	STZ IN_BUFFER_WI
 
-	STZ BREAK_CODE
-
-	LDA ASCII_ESC, I
-	JSR PUTC
-	LDA ASCII_AT, I
-	JSR PUTC
-
-	CLI
-
+	STZ PRINT_STATUS	; zero status flags
+	STZ INPUT_STATUS
+	STZ OUT_BUFFER_COPY_LEN
+	CLI			; clear interrupt
+	; test code below
 ;;
-	LDA LAMBS, I
-	STA VR0
-	LDA LAMBS + 8 >, I
-	STA VR0 1
-	JSR PUTS
-	LDA BC_PRINT, I
+	LDA BV_INPUT, I
 	BRK
-	NOP
-.L DEATH
-	JMP DEATH
+.L INSYNC
+	LDA INPUT_STATUS
+	BNE INSYNC
+	LDA INITSTR, I
+	STA VR0
+	LDA INITSTR + 8 >, I
+	STA VR0 1
+	LDA 2, I
+	STA VR1
+	LDA BV_PRINT, I
+	BRK
+	LDA IN_BUFFER_WI
+	INC
+	STA VR1
+	LDA IN_BUFFER, I
+	STA VR0
+	LDA IN_BUFFER + 8 >, I
+	STA VR0 1
+	LDA BV_PRINT, I
+	BRK
+.L DIE
+	JMP DIE
 ;;
 
-.STRING LAMBS, "It puts the lotion on its skin."
+.L INITSTR
+.DROP ASCII_ESC
+.DROP ASCII_AT

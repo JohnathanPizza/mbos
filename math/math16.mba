@@ -9,6 +9,7 @@
 ; ADD16
 ; P - (VR0) pointer to number 1 "P1" (VR1) pointer to number 2 "P2"
 ; R - (VR0) pointer to sum "PS"
+; M - none
 ; adds two 16-bit numbers through pointers P1 and P2
 ; P1 and P2 can point to signed or unsigned numbers
 ; overwrites contents through P1 with the sum (through PS)
@@ -36,6 +37,7 @@
 ; SUB16
 ; P - (VR0) pointer to number 1 "P1" (VR1) pointer to number 2 "P2"
 ; R - (VR0) pointer to difference "PD"
+; M - none
 ; subtracts two 16-bit numbers through pointers P1 and P2
 ; P1 and P2 can point to signed or unsigned numbers
 ; overwrites contents through P1 with the difference (through PD)
@@ -75,8 +77,9 @@
 
 
 ; INC16
-; P - (VR0) pointer to number "P"
-; R - (VR0) pointer to incremented number "I"
+; P - (VR2) pointer to number "P"
+; R - (VR2) pointer to incremented number "I"
+; M - none
 ; increments the 16-bit number from pointer P by 1
 
 .L INC16
@@ -84,13 +87,13 @@
 	PHY		; push Y register
 	LDY 0, I	; initialize byte index to 0
 	CLC		; clear carry for add
-	LDA VR0, NY	; load low byte through P
+	LDA VR2, NY	; load low byte through P
 	ADC 1, I	; add 1 to low byte
-	STA VR0, NY	; store into low byte through I (P)
+	STA VR2, NY	; store into low byte through I (P)
 	INY		; increment byte index
-	LDA VR0, NY	; load high byte through P
+	LDA VR2, NY	; load high byte through P
 	ADC 0, I	; add carry from high byte
-	STA VR0, NY	; store into high byte through I (P)
+	STA VR2, NY	; store into high byte through I (P)
 	PLY		; pull Y register
 	PLA		; pull accumulator
 	RTS		; return
@@ -100,8 +103,9 @@
 
 
 ; DEC16
-; P - (VR0) pointer to number "P"
-; R - (VR0) pointer to decremented number "D"
+; P - (VR2) pointer to number "P"
+; R - (VR2) pointer to decremented number "D"
+; M - none
 ; decrements the 16-bit number from pointer P by 1
 
 .L DEC16
@@ -109,13 +113,13 @@
 	PHY		; push Y register
 	LDY 0, I	; initialize byte index to 0
 	SEC		; set cary for sub
-	LDA VR0, NY	; load low byte through P
+	LDA VR2, NY	; load low byte through P
 	SBC 1, I	; sub 1 from low byte
-	STA VR0, NY	; store into low byte through D (P)
+	STA VR2, NY	; store into low byte through D (P)
 	INY		; increment byte index
-	LDA VR0, NY	; load high byte through P
+	LDA VR2, NY	; load high byte through P
 	SBC 0, I	; sub carry from high byte
-	STA VR0, NY	; store into high byte through I (P)
+	STA VR2, NY	; store into high byte through I (P)
 	PLY		; pull Y register
 	PLA		; pull accumulator
 	RTS		; return
@@ -127,6 +131,7 @@
 ; UCMP16
 ; P - (VR0) pointer to number 1 "P1" (VR1) pointer to number 2 "P2"
 ; R - (A) comparison result "R"
+; M - none
 ; numerically compares the two UNSIGNED numbers at P1 and P2
 ; the numbers at P1 and P2 are not modified
 ; R = 0 if *P1 == *P2
@@ -170,6 +175,7 @@
 ; SCMP16
 ; P - (VR0) pointer to number 1 "P1" (VR1) pointer to number 2 "P2"
 ; R - (A) comparison result "R"
+; M - none
 ; numerically compares the two SIGNED numbers at P1 and P2
 ; the numbers at P1 and P2 are not modified
 ; R = 0 if *P1 == *P2

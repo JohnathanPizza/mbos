@@ -1,0 +1,13 @@
+; BRK_INPUT
+; P - none
+; R - none
+; M - none
+; starts an input sequence from the user via the keyboard
+; input stops and is valid to the program once return is pressed
+
+.L BRK_INPUT
+	LDA TRUE, I
+	STA INPUT_STATUS
+	BIT KB_PORT
+	JSR ENABLE_KEYBOARD_INT
+	JMP __INTERRUPT_END

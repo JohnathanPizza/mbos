@@ -1,0 +1,139 @@
+; indexed array from ps2 set 2 scan codes to ascii characters
+; the index is the ascii value and the element is the scan code value
+
+; scan codes for characters are not greater than 0X7F, so capital ascii have 0X80 added to the scan code value
+; when shift is pressed, add 0X80 to the scan code value basically
+
+.C KB_SC_BREAK,		0XF0
+.C KB_SC_EXTEND,	0XE0
+.C KB_SC_LSHIFT,	0X12
+
+.L KB_TLARRAY
+.DROP 0		; 0 null
+.DROP 0		; 1 soh
+.DROP 0		; 2 stx
+.DROP 0		; 3 etx
+.DROP 0		; 4 eot
+.DROP 0		; 5 enq
+.DROP 0		; 6 ack
+.DROP 0		; 7 bel
+.DROP 0X66	; 8 backspace/bs
+.DROP 0X0D	; 9 tab
+.DROP 0X5A	; 10 enter/lf
+.DROP 0		; 11 vt
+.DROP 0		; 12 ff
+.DROP 0		; 13 cr
+.DROP 0		; 14 so
+.DROP 0		; 15 si
+.DROP 0		; 16 dle
+.DROP 0X05	; 17 f1/dc1
+.DROP 0X06	; 18 f2/dc2
+.DROP 0X04	; 19 f3/dc3
+.DROP 0X0C	; 20 f4/dc4
+.DROP 0		; 21 nak
+.DROP 0		; 22 syn
+.DROP 0		; 23 etb
+.DROP 0		; 24 can
+.DROP 0		; 25 em
+.DROP 0		; 26 sub
+.DROP 0X76	; 27 esc
+.DROP 0		; 28 fs
+.DROP 0		; 29 gs
+.DROP 0		; 30 rs
+.DROP 0		; 31 us
+.DROP 0X29	; 32 space
+.DROP 0X16 0X80	; 33 !
+.DROP 0X52 0X80	; 34 "
+.DROP 0X26 0X80	; 35 #
+.DROP 0X25 0X80	; 36 $
+.DROP 0X2E 0X80	; 37 %
+.DROP 0X3D 0X80	; 38 &
+.DROP 0X52	; 39 '
+.DROP 0X46 0X80	; 40 (
+.DROP 0X45 0X80	; 41 )
+.DROP 0X3E 0X80	; 42 *
+.DROP 0X55 0X80	; 43 +
+.DROP 0X41	; 44 ,
+.DROP 0X4E	; 45 -
+.DROP 0X49	; 46 .
+.DROP 0X4A	; 47 /
+.DROP 0X45	; 48 0
+.DROP 0X16	; 49 1
+.DROP 0X1E	; 50 2
+.DROP 0X26	; 51 3
+.DROP 0X25	; 52 4
+.DROP 0X2E	; 53 5
+.DROP 0X36	; 54 6
+.DROP 0X3D	; 55 7
+.DROP 0X3E	; 56 8
+.DROP 0X46	; 57 9
+.DROP 0X4C 0X80	; 58 :
+.DROP 0X4C	; 59 ;
+.DROP 0X41 0X80	; 60 <
+.DROP 0X55	; 61 =
+.DROP 0X49 0X80	; 62 >
+.DROP 0X4A 0X80	; 63 ?
+.DROP 0X1E 0X80	; 64 @
+.DROP 0X1C 0X80	; 65 A
+.DROP 0X32 0X80	; 66 B
+.DROP 0X21 0X80	; 67 C
+.DROP 0X23 0X80	; 68 D
+.DROP 0X24 0X80	; 69 E
+.DROP 0X2B 0X80	; 70 F
+.DROP 0X34 0X80	; 71 G
+.DROP 0X33 0X80	; 72 H
+.DROP 0X43 0X80	; 73 I
+.DROP 0X3B 0X80	; 74 J
+.DROP 0X42 0X80	; 75 K
+.DROP 0X4B 0X80	; 76 L
+.DROP 0X3A 0X80	; 77 M
+.DROP 0X31 0X80	; 78 N
+.DROP 0X44 0X80	; 79 O
+.DROP 0X4D 0X80	; 80 P
+.DROP 0X15 0X80	; 81 Q
+.DROP 0X2D 0X80	; 82 R
+.DROP 0X1B 0X80	; 83 S
+.DROP 0X2C 0X80	; 84 T
+.DROP 0X3C 0X80	; 85 U
+.DROP 0X2A 0X80	; 86 V
+.DROP 0X1D 0X80	; 87 W
+.DROP 0X22 0X80	; 88 X
+.DROP 0X35 0X80	; 89 Y
+.DROP 0X1A 0X80	; 90 Z
+.DROP 0X54	; 91 [
+.DROP 0X5D	; 92 \
+.DROP 0X5B	; 93 ]
+.DROP 0X36 0X80	; 94 ^
+.DROP 0X4E 0X80	; 95 _
+.DROP 0X0E	; 96 `
+.DROP 0X1C	; 97 a
+.DROP 0X32	; 98 b
+.DROP 0X21	; 99 c
+.DROP 0X23	; 100 d
+.DROP 0X24	; 101 e
+.DROP 0X2B	; 102 f
+.DROP 0X34	; 103 g
+.DROP 0X33	; 104 h
+.DROP 0X43	; 105 i
+.DROP 0X3B	; 106 j
+.DROP 0X42	; 107 k
+.DROP 0X4B	; 108 l
+.DROP 0X3A	; 109 m
+.DROP 0X31	; 110 n
+.DROP 0X44	; 111 o
+.DROP 0X4D	; 112 p
+.DROP 0X15	; 113 q
+.DROP 0X2D	; 114 r
+.DROP 0X1B	; 115 s
+.DROP 0X2C	; 116 t
+.DROP 0X3C	; 117 u
+.DROP 0X2A	; 118 v
+.DROP 0X1D	; 119 w
+.DROP 0X22	; 120 x
+.DROP 0X35	; 121 y
+.DROP 0X1A	; 122 z
+.DROP 0X54 0X80	; 123 {
+.DROP 0X5D 0X80	; 124 |
+.DROP 0X5B 0X80	; 125 }
+.DROP 0X0E 0X80	; 126 ~
+.DROP 0		; 127 del

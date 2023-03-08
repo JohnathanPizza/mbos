@@ -1,53 +1,87 @@
 ; BASEIO
-;	PRINTER_TRANSMIT
-;	SEND_OUTPUT
+;	WRITE_PRINTER
+;	READ_KEYBOARD
 ;	ENABLE_PRINTER_INT
 ;	DISABLE_PRINTER_INT
+;	ENABLE_KEYBOARD_INT
+;	DISABLE_KEYBOARD_INT
+;	READ_OUT_BUFFER
+;	WRITE_OUT_BUFFER
+;	WRITE_IN_BUFFER
 
 
-; PRINTER_TRANSMIT
-; P - (A) character "C"
+.C KB_PORT, VIA_IORA
+.C PR_PORT, VIA_IORB
+
+
+; WRITE_PRINTER
+; P - (A) ASCII character "C"
 ; R - none
-; sends C to the printer over VIA_IORB
+; M - A bit 7 -> 0
+; sends C to the printer through the VIA
 
-.L PRINTER_TRANSMIT
-	ORA 0X80, I	; set transmit bit to signal new data is ready
-	STA VIA_IORB	; send to printer
-	EOR 0X80, I	; reset transmit bit so data only read once
-	STA VIA_IORB	; send to printer again
-	RTS		; return
+.L WRITE_PRINTER
+	ORA 0X80, I
+	STA PR_PORT
+	EOR 0X80, I
+	STA PR_PORT
+	RTS
 
 
 ;=================================================
 
 
-; SEND_OUTPUT
+; READ_KEYBOARD
 ; P - none
-; R - (A) bool "B"
-; attempts to send the next character from the output buffer to the printer
-; returns B = FALSE if no character was sent
-; returns B = TRUE if a character was sent
-; if a character was sent, index values are adjusted
+; R - (A) ASCII character "C"
+; M - none
+; tries to read an ASCII character from the keyboard
+; if C is the null character (0), then an ASCII value couldn't be formed
+; if C is not the null character, C is valid user input that should be consumed
+; can be called multiple times for the same scan code interrupt
 
-.L SEND_OUTPUT
-	PHX			; push x
-	LDX OUT_BUFFER_RI	; load ri
-	CPX OUT_BUFFER_WI	; see if ri = wi, this indicates no data to send
-	BEQ _SEND_OUTPUT_NONE	; ri does equal wi, no data to send, return false
-			; indices not equal, data to send
-	LDA OUT_BUFFER, X	; load character to send
-	JSR PRINTER_TRANSMIT	; char to the printer
-	TXA			; ri to acc for arithmetic
-	INC			; inc ri
-	AND 0X7F, I		; AND to correct the range
-	STA OUT_BUFFER_RI	; store new ri back
-	PLX			; pull x
-	LDA TRUE, I		; load TRUE into B for return
-	RTS			; return
-.L _SEND_OUTPUT_NONE
-	PLX			; pull x
-	LDA FALSE, I		; load FALSE into B for return
-	RTS			; return
+.L READ_KEYBOARD
+	LDA KB_PORT			; load inverted scan code from keyboard
+	EOR 0XFF, I			; invert bits
+	CMP KB_SC_BREAK, I		; compare scan code to break
+	BEQ _READ_KEYBOARD_SPECIAL	; if break, adjust flags
+	CMP KB_SC_EXTEND, I		; compare scan code to extend
+	BEQ _READ_KEYBOARD_SPECIAL	; if extend, adjust flags
+	CMP KB_SC_LSHIFT, I		; compare scan code to left shift
+	BEQ _READ_KEYBOARD_LSHIFT	; if left shift, adjust shift flag
+	; ascii then
+	BIT KB_FLAGS			; bit test the flags var, N flag will have bit 7
+	STZ KB_FLAGS			; flags are consumed, reset
+	BPL _READ_KEYBOARD_ASCII	; if N = 0, good to read an ascii since no flags
+				; flags on, return null
+	LDA 0, I			; load null character
+	RTS				; return
+.L _READ_KEYBOARD_ASCII
+	CLC				; clear carry for add
+	ADC KB_SHIFT			; acc still has the scan code, add 0X80 * shiftdown
+	PHX				; push X for loop index
+	LDX 0X7F, I			; load highest ASCII value
+.L _READ_KEYBOARD_ASCII_LOOP
+	CMP KB_TLARRAY, X		; see if scan code matches at index of ASCII value
+	BEQ _READ_KEYBOARD_ASCII_LOOP_END	; scan code in acc matches mem, X is ASCII value
+	DEX				; else decrement X for next ASCII to test
+	BNE _READ_KEYBOARD_ASCII_LOOP	; if value not 0, keep looping (exit when null character)
+.L _READ_KEYBOARD_ASCII_LOOP_END
+	TXA				; move ASCII value to acc for return value
+	PLX				; pull original X
+	RTS				; return
+.L _READ_KEYBOARD_SPECIAL
+	DEC KB_FLAGS			; decrement flags so nonzero and bit 7 set
+	LDA 0, I			; load null character
+	RTS				; return
+.L _READ_KEYBOARD_LSHIFT
+	LDA KB_FLAGS			; load flags
+	AND 0X80, I			; isolate bit 7
+	EOR 0X80, I			; invert bit 7
+	STA KB_SHIFT			; store into shift flag
+	STZ KB_FLAGS			; flags were consumed, reset
+	LDA 0, I			; load null character
+	RTS				; return
 
 
 ;=================================================
@@ -56,10 +90,12 @@
 ; ENABLE_PRINTER_INT
 ; P - none
 ; R - none
+; M - none
 ; enables the interrupt bit in the VIA IER for the printer
 
 .L ENABLE_PRINTER_INT
 	PHA
+	BIT VIA_IORB
 	LDA VIA_IER_ENABLE VIA_IRB_CB1, I
 	STA VIA_IER
 	PLA
@@ -72,6 +108,7 @@
 ; DISABLE_PRINTER_INT
 ; P - none
 ; R - none
+; M - none
 ; disables the interrupt bit in the VIA IER for the printer
 
 .L DISABLE_PRINTER_INT
@@ -80,3 +117,151 @@
 	STA VIA_IER
 	PLA
 	RTS
+
+
+;=================================================
+
+
+; ENABLE_KEYBOARD_INT
+; P - none
+; R - none
+; M - none
+; enables the interrupt bit in the VIA IER for the keyboard
+
+.L ENABLE_KEYBOARD_INT
+	PHA
+	BIT VIA_IORA
+	LDA VIA_IER_ENABLE VIA_IRB_CA1, I
+	STA VIA_IER
+	PLA
+	RTS
+
+
+;=================================================
+
+
+; DISABLE_KEYBOARD_INT
+; P - none
+; R - none
+; M - none
+; disables the interrupt bit in the VIA IER for the keyboard
+
+.L DISABLE_KEYBOARD_INT
+	PHA
+	LDA VIA_IER_DISABLE VIA_IRB_CA1, I
+	STA VIA_IER
+	PLA
+	RTS
+
+
+;=================================================
+
+
+; READ_OUT_BUFFER
+; P - none
+; R - (A) retrieved character "C" (X) success status "S"
+; M - none
+; attempts to retrieve and return the next character in the output buffer
+; if a character was read, then S is TRUE and C is valid, otherwise S is FALSE and C is junk
+; indicies are automatically adjusted on successful reads, and don't change on failure
+
+.L READ_OUT_BUFFER
+	LDX OUT_BUFFER_RI	; load read index into X
+	CPX OUT_BUFFER_WI	; test if the read index is equal to the write index
+	BNE _READ_OUT_BUFFER_GOOD	; if not equal, there is data to read
+			; indicies are equal, nothing to read
+	LDX FALSE, I		; load false
+	RTS			; return
+.L _READ_OUT_BUFFER_GOOD
+			; something to read
+	LDA OUT_BUFFER, X	; read next character in buffer with X having ri from above
+	PHA			; push character to adjust read index
+	TXA			; read index to acc
+	INC			; increment
+	AND 0X7F, I		; restrict range
+	STA OUT_BUFFER_RI	; store updated read index back to mem
+	PLA			; pull character
+	LDX TRUE, I		; load true
+	RTS			; return
+
+
+;=================================================
+
+
+; WRITE_OUT_BUFFER
+; P - (A) character to write "C"
+; R - (A) success status "S"
+; M - none
+; false for no write
+.L WRITE_OUT_BUFFER
+	PHA			; push character to do math on indicies
+	LDA OUT_BUFFER_WI	; load write index
+	INC			; increment
+	AND 0X7F, I		; restrict range
+	CMP OUT_BUFFER_RI	; test if write index + 1 = read index
+	BNE _WRITE_OUT_BUFFER_GOOD	; if not equal, the character can be written
+			; indicies are equal, no space to write and return false
+	PLA			; pull character off stack
+	LDA FALSE, I		; load false
+	RTS			; return
+.L _WRITE_OUT_BUFFER_GOOD
+			; good to write the character
+	PLA			; pull chararcter off the stack
+	PHX			; push X to load the write index
+	LDX OUT_BUFFER_WI	; load write index to X
+	STA OUT_BUFFER, X	; store character into out buffer
+	TXA			; move write index to acc for math
+	PLX			; pull original X from stack
+	INC			; increment write index
+	AND 0X7F, I		; restrict range
+	STA OUT_BUFFER_WI	; store new write index to mem
+	LDA TRUE, I		; load true
+	RTS			; return
+
+
+;=================================================
+
+
+; WRITE_IN_BUFFER
+; P - (A) character "C"
+; R - (A) T/F end condition "E"
+; M - none
+; add the character C to the input buffer if possible
+; if there is no more room, do nothing
+; if C is a special character like backspace, performs appropriate action but doesn't add to buffer
+; if C is a line feed, it is stored but the write index is not incremented
+; E is TRUE if the character was a return character, FALSE otherwise
+; input should be stopped whenever this function returns TRUE
+
+.L WRITE_IN_BUFFER
+	CMP ASCII_BS, I		; compare character to backspace
+	BEQ _WRITE_IN_BUFFER_BS	; if backspace, do backspace stuff
+	PHX			; push x
+	LDX IN_BUFFER_WI	; load the write index
+	CMP ASCII_LF, I		; compare character to line feed
+	BEQ _WRITE_IN_BUFFER_LF	; if line feed, do line feed stuff
+	CPX 127, I		; compare write index to 127
+	BNE _WRITE_IN_BUFFER_GOOD	; if not 127, there is room and add the char
+			; else no room, exit
+	PLX			; pull x
+	LDA FALSE, I		; load false
+	RTS			; return
+.L _WRITE_IN_BUFFER_GOOD
+	STA IN_BUFFER, X	; store character in buffer
+	INC IN_BUFFER_WI	; inc write index
+	PLX			; pull x
+	LDA FALSE, I		; load false
+	RTS			; return
+.L _WRITE_IN_BUFFER_LF
+	STA IN_BUFFER, X	; store line feed in buffer
+	PLX			; pull x
+	LDA TRUE, I		; load true
+	RTS			; return
+.L _WRITE_IN_BUFFER_BS
+	DEC IN_BUFFER_WI	; decrement the write index (effectively erasing 1 character)
+	BPL _WRITE_IN_BUFFER_BS_GOOD	; if >= 0, do nothing
+			; else wi = -1 and need to inc by 1
+	INC IN_BUFFER_WI	; inc wi
+.L _WRITE_IN_BUFFER_BS_GOOD
+	LDA FALSE, I		; load false
+	RTS			; return
