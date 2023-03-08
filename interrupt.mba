@@ -83,7 +83,7 @@
 	BEQ __INTERRUPT_END	; if false, leave the interrupt on and end
 			; else turn it off and reset flags
 	JSR DISABLE_KEYBOARD_INT	; turn off kb interrupt
-	STZ IN_STATUS		; zero to status
+	STZ INPUT_STATUS	; zero to status
 	STZ KB_FLAGS		; reset flags
 	STZ KB_SHIFT		; reset shift
 
